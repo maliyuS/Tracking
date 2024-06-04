@@ -55,7 +55,7 @@ class CustomSDR(adi.ad9361):
 
         # Sampling
         self.sample_rate = 30e6  # must be <=30.72 MHz if both channels are enabled
-        self.buffer_size = 2 ** 14  # (ou nombre d'échantillons) possibilité de 2 ** 18
+        self.buffer_size = 2 ** 8  # (ou nombre d'échantillons) possibilité de 2 ** 18
         self.kernel_buffers_count = 1
 
         """ Set distance between Rx antennas """
@@ -65,7 +65,7 @@ class CustomSDR(adi.ad9361):
 
         """Experience properties """
         self.phase_cal = 0  # Phase calibration value for the SDR
-        self.fc0 = int(2e3)
+        self.fc0 = int(2e5)
 
     ########################################################################################################################
     ######################################### CONFIGURE SDR PROPERTIES #####################################################
