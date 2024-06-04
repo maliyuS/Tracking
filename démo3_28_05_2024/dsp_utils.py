@@ -212,7 +212,7 @@ class MonopulseAngleEstimator:
         # Calcul de l'angle theta en degrés à partir de l'argument arcsin
         calc_theta = np.rad2deg(np.arcsin(arcsin_arg)) + phase_cal
 
-        print(f'AoA : {calc_theta:.6f} degrees')
+        print(f'AoA (Average) : {calc_theta:.6f} degrees')
 
         return calc_theta
 
