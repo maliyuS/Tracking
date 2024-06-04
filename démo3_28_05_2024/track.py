@@ -51,7 +51,7 @@ class CustomSDR(adi.ad9361):
         # Tx
         self.tx_lo = int(2.25e9)
         self.tx_gain0 = -3
-        self.tx_gain1 = -3
+        self.tx_gain1 = -88
 
         # Sampling
         self.sample_rate = 30e6  # must be <=30.72 MHz if both channels are enabled
