@@ -66,6 +66,7 @@ class CustomSDR(adi.ad9361):
         """Experience properties """
         self.phase_cal = 0  # Phase calibration value for the SDR
         self.fc0 = int(2e5)
+        self.average_window = 3
 
     ########################################################################################################################
     ######################################### CONFIGURE SDR PROPERTIES #####################################################
@@ -296,7 +297,7 @@ def main():
     counter = CallCounter()
 
     # Création de l'instance de la classe SlidingWindowAverager
-    estimator = MonopulseAngleEstimator(my_sdr.phase_cal, 3, my_sdr.sample_rate, my_sdr.fc0, my_sdr.rx_lo, my_sdr.d, my_sdr.buffer_size)
+    estimator = MonopulseAngleEstimator(my_sdr.phase_cal, my_sdr.average_window, my_sdr.sample_rate, my_sdr.fc0, my_sdr.rx_lo, my_sdr.d, my_sdr.buffer_size)
 
     '''Acquisition unique'''
     data = my_sdr.receive_data()
