@@ -1,6 +1,6 @@
-% Acquisition
+% Acquisition settings
 steps = 2e9;
-Span = 5e6;
+Span = 20e6;
 
 rx = sdrrx('Pluto', 'OutputDataType', 'double', 'SamplesPerFrame', 2^24); % Connexion USB par défaut
 
@@ -9,7 +9,8 @@ rx = sdrrx('Pluto', 'OutputDataType', 'double', 'SamplesPerFrame', 2^24); % Conn
 rx.CenterFrequency = 2.25e9;
 
 % rx_mode
-rx.GainSource = "AGC Fast Attack";  % For signals with rapidly changing power levels
+rx.GainSource = "AGC Fast Attack";  % AGC Fast Attack for signals with rapidly changing power levels
+%rx.Gain = 10; % Pour compenser les pertes
 
 % OutputDataType
 rx.OutputDataType = "double";
@@ -27,7 +28,7 @@ sa = dsp.SpectrumAnalyzer('SampleRate', rx.BasebandSampleRate, 'FrequencySpan', 
 samplesPerStep = rx.SamplesPerFrame / rx.BasebandSampleRate;
 AxesScaling = 'auto';
 
-ts = timescope('SampleRate', rx.BasebandSampleRate, 'TimeSpan', samplesPerStep / 1e6 , 'AxesScaling', AxesScaling);
+ts = timescope('SampleRate', rx.BasebandSampleRate, 'TimeSpan', samplesPerStep / 1e9 , 'AxesScaling', AxesScaling);
 
 %% Start spectrum and analyser
 for k=1 : steps
