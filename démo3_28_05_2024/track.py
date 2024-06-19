@@ -88,7 +88,7 @@ class CustomSDR(adi.ad9361):
         self.rx_enabled_channels = [0, 1]
 
         # Set the Rx RF bandwidth, usually around three times the center frequency
-        self.rx_rf_bandwidth = int(self.fc0 * 3)
+        self.rx_rf_bandwidth = int(self.fc0 * 1.5)
 
         # Set the local oscillator frequency for the Rx path
         self.rx_lo = int(self.rx_lo)
@@ -120,7 +120,7 @@ class CustomSDR(adi.ad9361):
         self.tx_enabled_channels = [0, 1]
 
         # Set the Tx RF bandwidth, usually around three times the center frequency
-        self.tx_rf_bandwidth = int(self.fc0 * 3)
+        self.tx_rf_bandwidth = int(self.fc0 * 1.5)
 
         # Set the local oscillator frequency for the Tx path
         self.tx_lo = int(self.tx_lo)
