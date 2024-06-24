@@ -72,11 +72,7 @@ time_delay = lag(I) / Fs;
 angular_delay = 2 * pi * Fb * time_delay; % On utilise la fréquence du signal en bande de base (Data)
 
 % Ajuster le déphasage dans l'intervalle [-pi, pi]
-if angular_delay > pi
-    angular_delay = angular_delay - 2*pi;
-elseif angular_delay < -pi
-    angular_delay = angular_delay + 2*pi;
-end
+angular_delay = mod(angular_delay + pi, 2*pi) - pi;
 
 % Déphasage angulaire en degrés (entre -180° et +180°)
 angular_delay_degrees = angular_delay * (180 / pi);
