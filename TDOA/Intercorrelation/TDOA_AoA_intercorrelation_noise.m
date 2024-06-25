@@ -1,3 +1,4 @@
+
 % Dans ce code, nous implémentons différents filtres adaptatifs avant
 % d'appliquer l'intercorrélation dans le but d'estimer encore plus  
 % la TDOA (et donc l'AoA) en fonction des niveaux de SNR. Parmis ceux essayées (Wiener, SCOT, ML qui ne marche pas, ...), l'algorithme
@@ -7,13 +8,13 @@
 
 %% 1) Paramètres d'acquisition
 % PlutoSDR
-Fs = 30e6; % fréquence d'échantillonnage du convertisseur CNA (en émission) et CAN (en réception) du PlutoSDR
+Fs = 1e6; % fréquence d'échantillonnage du convertisseur CNA (en émission) et CAN (en réception) du PlutoSDR
 Pe = 1/Fs; % Période d'échantillonnage
-Ne = 262144; % Nombre d'échantillons I/Q (ou taille du buffer circulaire qui contient les échantillons pour l'émission/réception du PlutoSDR)
+Ne = 16384; % Nombre d'échantillons I/Q (ou taille du buffer circulaire qui contient les échantillons pour l'émission/réception du PlutoSDR)
 
 % Télémesure - Prototype:
 c = 3e8; % Vitesse de la lumière
-Fb = 7e5; % fréquence du signal en bande de base (Data)
+Fb = 200; % fréquence du signal en bande de base (Data)
 Fm = 2.25e9; % fréquence en espace libre du signal modulé
 lambda = c/Fm; % Longueur d'onde
 d = lambda/2; % Distance entre les éléments du réseau d'antennes
@@ -29,8 +30,8 @@ fontsize = 14;
 linewidth = 0.1;
 
 %% 2) Télécharger les signaux avec un chemin relatif
-Rx0 = readtable('C:\Users\DEV\Desktop\Samuel\démo3_28_05_2024\recordings_temp\Rx0_IQSamples_24-06-2024_14h19m.csv');
-Rx1 = readtable('C:\Users\DEV\Desktop\Samuel\démo3_28_05_2024\recordings_temp\Rx1_IQSamples_24-06-2024_14h19m.csv');
+Rx0 = readtable('C:\Users\DEV\Desktop\Samuel\MatLab\recordings\Fco=2MHz\-3dB\45°\Rx0_IQSamples_-3dB_BufferSize16384_sample_rate1e6_AoA_45°.csv');
+Rx1 = readtable('C:\Users\DEV\Desktop\Samuel\MatLab\recordings\Fco=2MHz\-3dB\45°\Rx1_IQSamples_-3dB_BufferSize16384_sample_rate1e6_AoA_45°.csv');
 
 % Extraire les composantes In-Phase (I)
 Rx0 = Rx0.I + 1i * Rx0.Q;
