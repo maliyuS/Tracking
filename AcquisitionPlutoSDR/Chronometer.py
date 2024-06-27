@@ -1,6 +1,4 @@
-import sys
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal, QObject
-
 class Chronometer(QObject):
     time_updated = pyqtSignal(int, int, int)
 
@@ -48,32 +46,14 @@ class Chronometer(QObject):
                     self.hours -= 1
                     if self.hours < 0:
                         self.stop_timer()
-                        self.hours, self.minutes, self.seconds = 0, 0, 0 # Reset to 0
+                        self.hours, self.minutes, self.seconds = 0, 0, 0  # Reset to 0
         self.time_updated.emit(self.hours, self.minutes, self.seconds)
 
 class ChronometerThread(QThread):
-    def __init__(self):
+    def __init__(self, count_up=True, start_time=(0, 0, 0)):
         super().__init__()
-        self.chronometer = Chronometer()
+        self.chronometer = Chronometer(count_up, start_time)
         self.chronometer.moveToThread(self)
 
     def run(self):
         self.exec_()
-
-if __name__ == "__main__":
-    from PyQt5.QtWidgets import QApplication
-
-    app = QApplication(sys.argv)
-
-    chronometer_thread = ChronometerThread()
-    chronometer_thread.start()  # Démarrer le thread
-
-    chronometer = chronometer_thread.chronometer
-    chronometer.start_timer()  # Démarrer le chronomètre
-
-    def print_time(hours, minutes, seconds):
-        print(f'{hours:02}:{minutes:02}:{seconds:02}')
-
-    chronometer.time_updated.connect(print_time)
-
-    sys.exit(app.exec_())
