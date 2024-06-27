@@ -1,52 +1,53 @@
-from asyncio import sleep
-
-from PyQt6 import QtWidgets
+from PyQt5 import QtWidgets
 from GUI import Ui_MainWindow
-from Chronometer import ChronometerThread
 import sys
+from Chronometer import ChronometerThread
 
 
-class myGUI(QtWidgets.QMainWindow, Ui_MainWindow):
+class MyGUI(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self):
-        super(myGUI, self).__init__()
+        super(MyGUI, self).__init__()
         self.setupUi(self)
 
-        self.chronometer_thread = ChronometerThread()
-        self.chronometer_thread.start()
-
-        self.chronometer = self.chronometer_thread.chronometer
-        self.chronometer.time_updated.connect(self.update_display)
-
-        # Déclencher le chronomètre lors de l'appuie sur le bouton Schedule
+        # Appel de la routine lors du click sur le ScheduleButton
         self.ScheduleButton.clicked.connect(self.on_scheduleButton_click)
+
+        self.upChronometerThread = ChronometerThread(count_up=True)
+        self.downChronometerThread = ChronometerThread(count_up=False)
+
+        self.upChronometer = self.upChronometerThread.chronometer
+        self.downChronometer = self.downChronometerThread.chronometer
+
 
 
     def on_scheduleButton_click(self):
-        # récupérer le contenu de inputTimer_heure, inputTimer_minute et inputTimer_seconde
+
+        # Récupérer le contenu de inputTimer_heure, inputTimer_minute et inputTimer_seconde
         hours = int(self.inputTimer_heure.text())
         minutes = int(self.inputTimer_minute.text())
         seconds = int(self.inputTimer_seconde.text())
 
-        # Compte à rebours à partir de l'heure, minute et seconde récupérées
-        self.chronometer_thread.start()  # Démarrer le thread
-        self.chronometer.start_timer()  # Démarrer le chronomètre
-
-        sleep(1000)
-
-        seconde = self.chronometer.seconds
-        print(seconde)
-
-    def updated(self):
-        minute = self.chronometer.minutes
-        print(minute)
+        # Démarer le Chronometer et le connecter à la méthode update_display
+        self.startUpChronometer(hours, minutes, seconds)
 
 
+    def startUpChronometer(self, hours, minutes, seconds):
+        self.downChronometerThread.start()
+        self.downChronometer.hours = hours
+        self.downChronometer.minutes = minutes
+        self.downChronometer.seconds = seconds
+        self.downChronometer.time_updated.connect(self.update_display)
+        self.downChronometer.start_timer()
 
+
+    def update_display(self, hours, minutes, seconds):
+        # print(f'{hours:02}:{minutes:02}:{seconds:02}')
+        self.outputTimer_heure.setText(f'{hours:02}')
+        self.outputTimer_minute.setText(f'{minutes:02}')
+        self.outputTimer_seconde.setText(f'{seconds:02}')
 
 if __name__ == "__main__":
-
     app = QtWidgets.QApplication(sys.argv)
-    window = myGUI()
-
+    window = MyGUI()
     window.show()
-    sys.exit(app.exec())
+    sys.exit(app.exec_())
