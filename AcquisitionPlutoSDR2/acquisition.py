@@ -1,0 +1,168 @@
+import sys
+import datetime
+import numpy as np
+from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, QTimer
+from PlutoSetup import CustomSDR
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
+import os
+import threading
+class AcquisitionThread(QThread):
+    data_received = pyqtSignal(object, object)
+
+    def __init__(self, sdr, parent=None):
+        super().__init__(parent)
+        self.sdr = sdr
+        self.Rx0_combined_samples = np.array([], dtype=complex)
+        self.Rx1_combined_samples = np.array([], dtype=complex)
+
+        #Les variables d'état
+        self._running = False
+        self._saving = False
+
+    """ La routine d'acquisition des données"""
+########################################################################################################################
+    def run(self):
+        self._running = True
+        self.sdr.calibrate_rx()
+        while self._running:
+            data = self.sdr.receive_data()
+            self.data_received.emit(data['Rx_0'], data['Rx_1'])
+            if self._saving:
+                self.append_samples(data['Rx_0'], data['Rx_1'])
+                self.check_and_save_samples(max_size_bytes=500)
+
+    def stop(self):
+        self._running = False
+
+########################################################################################################################
+
+    """ Les fonctions pour enregistrer les données """
+
+    def append_samples(self, Rx0, Rx1):
+        """
+        Concatène les échantillons des canaux Rx0 et Rx1 et les stocke dans des variables de classe distinctes.
+
+        Paramètres:
+            Rx0 (numpy.array): Un tableau numpy contenant les échantillons IQ complexes pour le canal Rx0 sous la forme (I + jQ).
+            Rx1 (numpy.array): Un tableau numpy contenant les échantillons IQ complexes pour le canal Rx1 sous la forme (I + jQ).
+        """
+
+        # Stocker ou concaténer les échantillons de Rx0
+        if self.Rx0_combined_samples.size == 0:
+            self.Rx0_combined_samples = Rx0
+        else:
+            self.Rx0_combined_samples = np.concatenate((self.Rx0_combined_samples, Rx0))
+
+        # Stocker ou concaténer les échantillons de Rx1
+        if self.Rx1_combined_samples.size == 0:
+            self.Rx1_combined_samples = Rx1
+        else:
+            self.Rx1_combined_samples = np.concatenate((self.Rx1_combined_samples, Rx1))
+
+########################################################################################################################
+    def check_and_save_samples(self, max_size_bytes=500):
+        """
+        Vérifie si la taille combinée des échantillons Rx0 et Rx1 dépasse max_size_bytes.
+        Si oui, sauvegarde les échantillons dans un fichier CSV et réinitialise les tableaux.
+
+        Paramètre:
+            max_size_bytes (int): Taille maximale autorisée en octets pour les échantillons combinés.
+        """
+        # Préparer les données à écrire
+        combined_data = np.column_stack((np.real(self.Rx0_combined_samples), np.imag(self.Rx0_combined_samples),
+                                         np.real(self.Rx1_combined_samples), np.imag(self.Rx1_combined_samples)))
+        header = 'Rx0_I, Rx0_Q, Rx1_I, Rx1_Q'
+
+        # Calculer la taille des échantillons combinés en bytes
+        current_size = combined_data.nbytes / (1024 ** 2 * 15 / 50)  # facteur de correction 15/50
+        print(f"Taille des échantillons combinés: {current_size:.2f} Mo")
+
+        if current_size > max_size_bytes:
+            TimeStamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.save_IQSamples_to_csv_thread(combined_data, header, TimeStamp)
+            self.Rx0_combined_samples = np.array([], dtype=complex)
+            self.Rx1_combined_samples = np.array([], dtype=complex)
+
+########################################################################################################################
+
+    def save_IQSamples_to_csv(self, combined_data, header, TimeStamp=None):
+        """
+        Sauvegarde les données d'un des canaux de réception du PlutoSDR au format Parquet.
+
+        Paramètres:
+            combined_data (numpy array): Un tableau numpy contenant les échantillons IQ complexes sous la forme (I + jQ).
+            header (str): L'en-tête pour le fichier CSV.
+            TimeStamp (str): Le timestamp pour nommer le fichier.
+        """
+        # Obtenir le répertoire de travail courant et définir le chemin complet
+        current_directory = os.getcwd()
+        folder_path = os.path.join(current_directory, "recordings_temp")
+        filename = f"IQSamples_{TimeStamp}.parquet"  # Utilisation de l'extension .parquet
+        complete_path = os.path.join(folder_path, filename)
+
+        print(f"Enregistrement des signaux IQ à la date {TimeStamp}")
+
+        # Créer le dossier contenant le fichier Parquet, s'il n'existe pas
+        os.makedirs(os.path.dirname(complete_path), exist_ok=True)
+
+        # Convertir les données en DataFrame pandas
+        df = pd.DataFrame(combined_data, columns=header.split(', '))
+
+        # Convertir le DataFrame pandas en table pyarrow
+        table = pa.Table.from_pandas(df)
+
+        # Écrire la table en format Parquet pour que ce soit plus rapide. Il faudra ensuite le décompresser pour le lire.
+        pq.write_table(table, complete_path, use_dictionary=True, compression='snappy')
+
+        print(f"Les échantillons IQ ont été enregistrés avec succès dans {complete_path}.")
+
+########################################################################################################################
+    def save_IQSamples_to_csv_thread(self, combined_data, header, TimeStamp=None):
+        # Créer et démarrer un thread pour exécuter save_IQSamples_to_csv
+        save_thread = threading.Thread(target=self.save_IQSamples_to_csv, args=(combined_data, header, TimeStamp))
+        save_thread.start()
+
+########################################################################################################################
+########################################################################################################################
+
+# Exemple d'utilisation
+def test_acquisition_thread():
+    app = QCoreApplication(sys.argv)
+
+    # Afficher que la connexion au Pluto à fonctionnée
+    my_sdr = CustomSDR(uri='ip:192.168.2.1')
+    my_sdr.configure_rx_properties()
+    my_sdr.configure_tx_properties()
+    my_sdr.configure_sampling_properties()
+
+    # Initialiser le thread d'acquisition
+    acquisition_thread = AcquisitionThread(my_sdr)
+
+    # Définir un slot pour imprimer les données reçues
+    def print_data(rx0, rx1):
+        print("Data received:")
+        print("Rx_0:", rx0)
+        print("Rx_1:", rx1)
+
+    # Connecter le signal data_received au slot print_data
+    acquisition_thread.data_received.connect(print_data)
+
+    # Démarrer le thread d'acquisition
+    acquisition_thread.start()
+
+    # Utiliser QTimer pour arrêter le thread après 5 secondes
+    def stop_thread():
+        acquisition_thread.stop()
+        acquisition_thread.wait()
+        print("Acquisition thread stopped.")
+        QCoreApplication.quit()
+
+    QTimer.singleShot(5000, stop_thread)
+
+    # Exécuter application Qt
+    sys.exit(app.exec_())
+
+# Appeler la fonction de test
+# test_acquisition_thread()
