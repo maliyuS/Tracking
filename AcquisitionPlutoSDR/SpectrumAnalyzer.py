@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QDoubleValidator
 import pyqtgraph as pg
 
+
 class SpectrumAnalyzer(QMainWindow):
     def __init__(self, signal, sampling_rate):
         super().__init__()
@@ -149,7 +150,8 @@ class SpectrumAnalyzer(QMainWindow):
         """Display an error message box."""
         QMessageBox.critical(self, "Error", message)
 
-if __name__ == '__main__':
+
+def main():
     app = QApplication(sys.argv)
     t = np.linspace(0, 1, 1000)  # 1 second period
     example_signal = np.sin(2 * np.pi * 100000 * t)  # 100 kHz sine wave
@@ -157,3 +159,6 @@ if __name__ == '__main__':
     analyzer = SpectrumAnalyzer(example_signal, sampling_rate)
     analyzer.show()
     sys.exit(app.exec_())
+
+
+main()
