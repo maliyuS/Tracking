@@ -1,4 +1,7 @@
 import sys
+import time
+
+import PyQt5.QtCore
 import numpy as np
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget, QHBoxLayout,
@@ -9,7 +12,7 @@ import pyqtgraph as pg
 
 
 class SpectrumAnalyzer(QMainWindow):
-    def __init__(self, signal, sampling_rate):
+    def __init__(self, signal=None, sampling_rate=None):
         super().__init__()
         self.setWindowTitle("Spectrum Analyzer")
         self.setGeometry(100, 100, 800, 600)
@@ -24,7 +27,12 @@ class SpectrumAnalyzer(QMainWindow):
         self.freqs = None
 
         self.init_ui()
-        self.plot_spectrum()
+        self.display_no_data_message()
+
+        # Setup QTimer
+        self.timer = PyQt5.QtCore.QTimer()
+        self.timer.timeout.connect(self.update_spectrum)
+        self.timer.start(100)  # Update every 100 ms
 
     def init_ui(self):
         """Initialize the user interface components."""
@@ -80,18 +88,34 @@ class SpectrumAnalyzer(QMainWindow):
         self.marker_info_layout = QHBoxLayout()
         layout.addLayout(self.marker_info_layout)
 
+    def display_no_data_message(self):
+        """Display a message indicating no data is available."""
+        self.plot_item.clear()
+        self.plot_item.addItem(pg.TextItem("No Data", anchor=(0.5, 0.5), color='r', border='w'))
+
+    def update_signal_data(self, signal, sampling_rate):
+        """Update the spectrum with new signal data."""
+        self.signal = signal
+        self.sampling_rate = sampling_rate
+        self.plot_spectrum()
+
     def update_parameters(self):
         """Update the spectrum plot based on new parameters."""
         try:
             self.central_freq = float(self.central_freq_input.text())
             self.span = float(self.span_input.text())
-            self.plot_spectrum()
+            if self.signal is not None and self.sampling_rate is not None:
+                self.plot_spectrum()
             self.update_marker_text()
         except ValueError:
             self.show_error("Invalid input for frequency or span.")
 
     def plot_spectrum(self):
         """Calculate and plot the frequency spectrum of the signal."""
+        if self.signal is None or self.sampling_rate is None:
+            self.display_no_data_message()
+            return
+
         windowed_signal = self.signal * np.blackman(len(self.signal))
         self.spectrum = np.fft.fftshift(np.abs(np.fft.fft(windowed_signal)))
         self.spectrum /= np.sum(np.blackman(len(self.signal)))
@@ -146,6 +170,12 @@ class SpectrumAnalyzer(QMainWindow):
             delta_label = QLabel(f"ΔF: {delta_freq:.2f} kHz, ΔA: {delta_amp:.2f} dB")
             self.marker_info_layout.addWidget(delta_label)
 
+    def update_spectrum(self):
+        """Update the spectrum with current signal data."""
+        if self.signal is not None and self.sampling_rate is not None:
+            self.plot_spectrum()
+            self.update_marker_text()
+
     def show_error(self, message):
         """Display an error message box."""
         QMessageBox.critical(self, "Error", message)
@@ -153,12 +183,27 @@ class SpectrumAnalyzer(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    t = np.linspace(0, 1, 1000)  # 1 second period
-    example_signal = np.sin(2 * np.pi * 100000 * t)  # 100 kHz sine wave
-    sampling_rate = 1000000  # 1 MHz sampling rate
-    analyzer = SpectrumAnalyzer(example_signal, sampling_rate)
+    analyzer = SpectrumAnalyzer()
     analyzer.show()
+
+    t = np.linspace(0, 1, 1000)
+    signals = [
+        np.sin(2 * np.pi * 100000 * t),
+        np.sin(2 * np.pi * 200000 * t),
+        np.cos(2 * np.pi * 300000 * t),
+        np.sin(2 * np.pi * 100000 * t) + 0.5 * np.sin(2 * np.pi * 150000 * t),
+    ]
+    sampling_rate = 1000000
+
+    def update_signal(index=[0]):
+        analyzer.update_signal_data(signals[index[0]], sampling_rate)
+        index[0] = (index[0] + 1) % len(signals)
+
+    timer = PyQt5.QtCore.QTimer()
+    timer.timeout.connect(update_signal)
+    timer.start(10000)  # Change signal every 2 seconds
+
     sys.exit(app.exec_())
 
-
 main()
+
